@@ -12,15 +12,25 @@ export const MotorcycleSchema = z.object({
 export const AuctionSchema = z
   .object({
     motorcycleId: z.string().cuid(),
+    title: z.string().min(1, "Title is required"),
+    description: z.string().min(1, "Description is required"),
+    regStartTime: z.coerce.date(),
+    regEndTime: z.coerce.date(),
     startTime: z.coerce.date(),
     endTime: z.coerce.date(),
-    startingBidPaise: z.coerce.bigint().positive(),
+    startingBidPaise: z.coerce.bigint().positive("Starting bid must be positive"),
+    reservePricePaise: z.coerce.bigint().positive().optional().nullable(),
   })
-  .refine((data) => data.endTime > data.startTime, {
-    message: "endTime must be after startTime",
-    path: ["endTime"],
+  .refine((data) => data.regStartTime < data.regEndTime, {
+    message: "Registration end time must be after registration start time",
+    path: ["regEndTime"],
   })
-  .refine((data) => data.startTime > new Date(), {
-    message: "startTime must be in the future",
+  .refine((data) => data.regEndTime <= data.startTime, {
+    message: "Auction start time must be at or after registration close time",
     path: ["startTime"],
+  })
+  .refine((data) => data.startTime < data.endTime, {
+    message: "Auction end time must be after auction start time",
+    path: ["endTime"],
   });
+

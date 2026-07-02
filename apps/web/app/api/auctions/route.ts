@@ -8,19 +8,13 @@ import { withCorrelation } from "@/lib/logger";
 import { randomUUID } from "crypto";
 import type { AuctionStatus } from "@prisma/client";
 
-const STATUS_VALUES = ["SCHEDULED", "LIVE", "CLOSED", "CANCELLED"] as const;
-
 export async function GET(req: NextRequest) {
-  const statusParam = req.nextUrl.searchParams.get("status");
-  const status = STATUS_VALUES.includes(statusParam as AuctionStatus)
-    ? (statusParam as AuctionStatus)
-    : undefined;
-
   const cursor = req.nextUrl.searchParams.get("cursor") ?? undefined;
   const take = 20;
 
+  // Fetch all non-cancelled auctions so computed status can determine their state dynamically
   const auctions = await prisma.auction.findMany({
-    where: status ? { status } : undefined,
+    where: { status: { not: "CANCELLED" } },
     include: {
       motorcycle: true,
       currentHighestBid: { select: { amountPaise: true, userId: true, createdAt: true } },
@@ -67,7 +61,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const auction = await prisma.auction.create({ data: parsed.data });
+  const auction = await prisma.auction.create({
+    data: {
+      motorcycleId: parsed.data.motorcycleId,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      regStartTime: parsed.data.regStartTime,
+      regEndTime: parsed.data.regEndTime,
+      startTime: parsed.data.startTime,
+      endTime: parsed.data.endTime,
+      startingBidPaise: parsed.data.startingBidPaise,
+      reservePricePaise: parsed.data.reservePricePaise,
+      status: "SCHEDULED",
+    },
+  });
 
   await prisma.auditLog.create({
     data: {
@@ -78,19 +85,25 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Enqueue lifecycle jobs on the shared queue — see lib/queue.ts. The
-  // worker (apps/worker/src/index.ts) is the process that actually
-  // processes these jobs; the web app only needs to know the queue name.
+  // Enqueue lifecycle jobs
   await scheduleAuctionLifecycle(auction);
 
   log.info({ auctionId: auction.id }, "auction scheduled");
-  return NextResponse.json({ auction: serializeAuction({ ...auction, motorcycle: undefined as any, currentHighestBid: null }) }, { status: 201 });
+  return NextResponse.json(
+    { auction: serializeAuction({ ...auction, motorcycle: undefined as any, currentHighestBid: null }) },
+    { status: 201 }
+  );
 }
 
 function serializeAuction(a: any) {
   return {
     ...a,
     startingBidPaise: a.startingBidPaise.toString(),
+    reservePricePaise: a.reservePricePaise ? a.reservePricePaise.toString() : null,
+    regStartTime: a.regStartTime ? a.regStartTime.toISOString() : null,
+    regEndTime: a.regEndTime ? a.regEndTime.toISOString() : null,
+    startTime: a.startTime.toISOString(),
+    endTime: a.endTime.toISOString(),
     currentHighestBid: a.currentHighestBid
       ? { ...a.currentHighestBid, amountPaise: a.currentHighestBid.amountPaise.toString() }
       : null,

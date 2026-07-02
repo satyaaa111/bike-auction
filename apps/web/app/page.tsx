@@ -6,13 +6,16 @@ export const dynamic = "force-dynamic";
 
 async function getAuctions() {
   const auctions = await prisma.auction.findMany({
-    where: { status: { in: ["LIVE", "SCHEDULED"] } },
+    where: { status: { not: "CANCELLED" } },
     include: { motorcycle: true, currentHighestBid: { select: { amountPaise: true } } },
-    orderBy: [{ status: "asc" }, { startTime: "asc" }],
+    orderBy: [{ startTime: "asc" }],
   });
-  return auctions.map((a: { startingBidPaise: { toString: () => any; }; startTime: { toISOString: () => any; }; endTime: { toISOString: () => any; }; currentHighestBid: { amountPaise: { toString: () => any; }; }; }) => ({
+  return auctions.map((a: any) => ({
     ...a,
     startingBidPaise: a.startingBidPaise.toString(),
+    reservePricePaise: a.reservePricePaise ? a.reservePricePaise.toString() : null,
+    regStartTime: a.regStartTime ? a.regStartTime.toISOString() : null,
+    regEndTime: a.regEndTime ? a.regEndTime.toISOString() : null,
     startTime: a.startTime.toISOString(),
     endTime: a.endTime.toISOString(),
     currentHighestBid: a.currentHighestBid ? { amountPaise: a.currentHighestBid.amountPaise.toString() } : null,
@@ -35,8 +38,8 @@ export default async function HomePage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {auctions.map((auction: { id: Key | null | undefined; }) => (
-            <AuctionCard key={auction.id} auction={auction as any} />
+          {auctions.map((auction: any) => (
+            <AuctionCard key={auction.id} auction={auction} />
           ))}
         </div>
       )}

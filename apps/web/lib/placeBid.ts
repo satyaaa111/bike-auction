@@ -42,12 +42,13 @@ export async function placeBid(
       Array<{
         id: string;
         status: AuctionStatus;
+        startTime: Date;
         endTime: Date;
         startingBidPaise: bigint;
         currentHighestBidId: string | null;
       }>
     >`
-      SELECT id, status, "endTime", "startingBidPaise", "currentHighestBidId"
+      SELECT id, status, "startTime", "endTime", "startingBidPaise", "currentHighestBidId"
       FROM "Auction"
       WHERE id = ${auctionId}
       FOR UPDATE
@@ -56,11 +57,32 @@ export async function placeBid(
     if (!auction) {
       throw new BidError("AUCTION_NOT_FOUND", "Auction does not exist.");
     }
-    if (auction.status !== "LIVE") {
-      throw new BidError("AUCTION_NOT_LIVE", `Auction is ${auction.status}, not accepting bids.`);
+    if (auction.status === "CANCELLED") {
+      throw new BidError("AUCTION_CANCELLED", "Auction has been cancelled.");
     }
-    if (new Date() >= auction.endTime) {
+    if (auction.status === "CLOSED") {
+      throw new BidError("AUCTION_ENDED", "Auction has ended.");
+    }
+
+    const now = new Date();
+    if (now < auction.startTime) {
+      throw new BidError("AUCTION_NOT_STARTED", "Bidding is not open yet.");
+    }
+    if (now >= auction.endTime) {
       throw new BidError("AUCTION_ENDED", "Auction end time has passed.");
+    }
+
+    // Verify user is registered for this auction
+    const registration = await tx.auctionRegistration.findUnique({
+      where: {
+        auctionId_userId: {
+          auctionId,
+          userId,
+        },
+      },
+    });
+    if (!registration) {
+      throw new BidError("NOT_REGISTERED", "You must be registered for this auction to place a bid.");
     }
 
     // Re-read the current highest bid INSIDE the lock — this is the value

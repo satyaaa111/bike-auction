@@ -31,14 +31,27 @@ export async function seedLiveAuctionWithTwoBidders(prisma: PrismaClient) {
     },
   });
 
+  // Create auction with new required fields
   const auction = await prisma.auction.create({
     data: {
       motorcycleId: motorcycle.id,
+      title: `Test Auction ${suffix}`,
+      description: "Test description for motorcycle",
+      regStartTime: new Date(Date.now() - 3 * 60_000),
+      regEndTime: new Date(Date.now() - 2 * 60_000),
       startTime: new Date(Date.now() - 60_000),
       endTime: new Date(Date.now() + 60 * 60_000),
       startingBidPaise: 50_000n,
       status: "LIVE",
     },
+  });
+
+  // Pre-register both users for the auction so they are allowed to place bids
+  await prisma.auctionRegistration.create({
+    data: { auctionId: auction.id, userId: userA.id },
+  });
+  await prisma.auctionRegistration.create({
+    data: { auctionId: auction.id, userId: userB.id },
   });
 
   return { auctionId: auction.id, userA: userA.id, userB: userB.id };
@@ -49,7 +62,9 @@ export async function cleanupTestData(prisma: PrismaClient) {
   // scopes this to data created by seedLiveAuctionWithTwoBidders).
   await prisma.auditLog.deleteMany({ where: { actor: { email: { contains: "@test.dev" } } } });
   await prisma.bid.deleteMany({ where: { user: { email: { contains: "@test.dev" } } } });
+  await prisma.auctionRegistration.deleteMany({ where: { user: { email: { contains: "@test.dev" } } } });
   await prisma.auction.deleteMany({ where: { motorcycle: { model: { startsWith: "Bike-" } } } });
   await prisma.motorcycle.deleteMany({ where: { model: { startsWith: "Bike-" } } });
   await prisma.user.deleteMany({ where: { email: { contains: "@test.dev" } } });
 }
+

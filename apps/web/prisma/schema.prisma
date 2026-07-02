@@ -26,9 +26,10 @@ model User {
   role         Role     @default(BUYER)
   createdAt    DateTime @default(now())
 
-  bids       Bid[]
-  auctions   Motorcycle[] @relation("CreatedByAdmin")
-  auditLogs  AuditLog[]
+  bids          Bid[]
+  auctions      Motorcycle[]          @relation("CreatedByAdmin")
+  auditLogs     AuditLog[]
+  registrations AuctionRegistration[]
 }
 
 model Motorcycle {
@@ -48,21 +49,24 @@ model Motorcycle {
 
 model Auction {
   id                  String        @id @default(cuid())
-  motorcycle          Motorcycle    @relation(fields: [motorcycleId], references: [id])
+  motorcycle          Motorcycle    @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
   motorcycleId        String        @unique
+  title               String
+  description         String
+  regStartTime        DateTime
+  regEndTime          DateTime
   startTime           DateTime
   endTime             DateTime
   startingBidPaise    BigInt
-  currentHighestBid   Bid?          @relation("CurrentHighestBid", fields: [currentHighestBidId], references: [id])
+  reservePricePaise   BigInt?
+  currentHighestBid   Bid?          @relation("CurrentHighestBid", fields: [currentHighestBidId], references: [id], onDelete: SetNull)
   currentHighestBidId String?       @unique
   status              AuctionStatus @default(SCHEDULED)
-  // Optimistic concurrency guard used alongside row-level locking —
-  // see ARCHITECTURE.md §6 for why row locking is primary and this is a
-  // defense-in-depth check on the closing transition specifically.
   version             Int           @default(0)
   createdAt           DateTime      @default(now())
 
-  bids Bid[] @relation("AuctionBids")
+  bids          Bid[]                 @relation("AuctionBids")
+  registrations AuctionRegistration[]
 
   @@index([status, startTime])
   @@index([status, endTime])
@@ -70,9 +74,9 @@ model Auction {
 
 model Bid {
   id         String   @id @default(cuid())
-  auction    Auction  @relation("AuctionBids", fields: [auctionId], references: [id])
+  auction    Auction  @relation("AuctionBids", fields: [auctionId], references: [id], onDelete: Cascade)
   auctionId  String
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String
   amountPaise BigInt
   createdAt  DateTime @default(now())
@@ -81,6 +85,20 @@ model Bid {
   highestForAuction Auction? @relation("CurrentHighestBid")
 
   @@index([auctionId, amountPaise])
+}
+
+model AuctionRegistration {
+  id        String   @id @default(cuid())
+  auctionId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  auction   Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([auctionId, userId])
+  @@index([auctionId])
+  @@index([userId])
 }
 
 model AuditLog {

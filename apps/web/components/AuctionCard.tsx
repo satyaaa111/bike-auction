@@ -1,9 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import { CountdownTimer } from "./CountdownTimer";
+import { useEffect, useState } from "react";
+import { getComputedStatus } from "@/lib/auctionStatus";
 
 type AuctionCardProps = {
   id: string;
   status: "SCHEDULED" | "LIVE" | "CLOSED" | "CANCELLED";
+  regStartTime: string;
+  regEndTime: string;
   startTime: string;
   endTime: string;
   startingBidPaise: string;
@@ -15,15 +20,30 @@ function formatRupees(paise: string) {
   return (Number(paise) / 100).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  LIVE: "Live",
-  CLOSED: "Closed",
-  CANCELLED: "Cancelled",
-};
-
 export function AuctionCard({ auction }: { auction: AuctionCardProps }) {
+  const [mounted, setMounted] = useState(false);
+  const [status, setStatus] = useState(() => getComputedStatus(auction));
+
+  useEffect(() => {
+    setMounted(true);
+    const interval = setInterval(() => {
+      setStatus(getComputedStatus(auction));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [auction]);
+
   const price = auction.currentHighestBid?.amountPaise ?? auction.startingBidPaise;
+
+  const STATUS_LABEL: Record<string, string> = {
+    UPCOMING: "Upcoming",
+    REGISTERING: "Registration Open",
+    REGISTRATION_CLOSED: "Registration Closed",
+    LIVE: "Live",
+    CLOSED: "Ended",
+    CANCELLED: "Cancelled",
+  };
+
+  const currentStatus = mounted ? status : getComputedStatus(auction);
 
   return (
     <Link
@@ -44,10 +64,14 @@ export function AuctionCard({ auction }: { auction: AuctionCardProps }) {
         <div className="flex items-center justify-between">
           <span
             className={`text-xs font-mono uppercase tracking-wide2 px-2 py-0.5 rounded ${
-              auction.status === "LIVE" ? "bg-live/20 text-live" : "bg-surfaceRaised text-muted"
+              currentStatus === "LIVE"
+                ? "bg-live/20 text-live"
+                : currentStatus === "REGISTERING"
+                ? "bg-brass/20 text-brassLight"
+                : "bg-surfaceRaised text-muted"
             }`}
           >
-            {STATUS_LABEL[auction.status]}
+            {STATUS_LABEL[currentStatus]}
           </span>
           <span className="text-xs text-muted font-mono">{auction.motorcycle.year}</span>
         </div>
@@ -61,7 +85,6 @@ export function AuctionCard({ auction }: { auction: AuctionCardProps }) {
             </div>
             <div className="font-mono text-brassLight text-xl tabular-nums">{formatRupees(price)}</div>
           </div>
-          {auction.status === "LIVE" && <CountdownTimer endTime={auction.endTime} />}
         </div>
       </div>
     </Link>
