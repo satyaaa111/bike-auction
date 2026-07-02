@@ -23,6 +23,29 @@ docs/
   ASSUMPTIONS.md    what was cut, and the production alternative for each
 ```
 
+---
+
+## Quick Testing Walkthrough
+
+The platform setup is fully automated. You do not need to run manual configuration or database migration scripts.
+
+### 1. Start the Platform in a Single Command:
+Run the following command at the root of the project to build and start all containers:
+```bash
+docker compose up --build
+```
+*(PostgreSQL, Redis, the Next.js web application, and the BullMQ background worker will build, spin up, migrate the database schema, and seed the default admin account automatically).*
+
+### 2. Access the Application:
+*   Open [http://localhost:3000](http://localhost:3000)
+
+### 3. Test the Auction & Live Bidding Flow:
+*   **Admin Panel:** Log in with `admin@bikeauction.dev` / `password123` and navigate to the admin page at [http://localhost:3000/admin](http://localhost:3000/admin). Add a motorcycle listing, and schedule a new auction (e.g. set the registration start to *now*, registration end to *+1 min*, and auction start to *+1 min*).
+*   **Buyer Registration:** Open an **Incognito / Guest Window** (or a different browser), register a new buyer account, navigate to the newly created auction, and click **Register for Auction** before the registration window closes.
+*   **Real-time Broadcast:** Watch the UI dynamically transition from "Registration" to "Live Bidding" automatically when the countdown timer hits zero. Place bids in the buyer window and verify they update instantly on other connected browsers without requiring page refreshes.
+
+---
+
 ## Local setup
 
 **Prerequisites:** Node 20+, Docker, npm.
