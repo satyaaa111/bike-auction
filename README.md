@@ -1,4 +1,4 @@
-# Bike Auction Platform
+# Bike Auction Platform (Production Ready)
 
 A real-time bike auction platform. See `docs/ARCHITECTURE.md` for the
 design rationale and `docs/ASSUMPTIONS.md` for what was traded off and why.
