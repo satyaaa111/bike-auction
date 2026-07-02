@@ -4,7 +4,7 @@ This document outlines how to set up, run, and test the **Bike Auction Platform*
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 
 Ensure you have the following installed on your host machine:
 1.  **Node.js 20+**
@@ -13,7 +13,7 @@ Ensure you have the following installed on your host machine:
 
 ---
 
-## 🔑 Environment Configuration
+## Environment Configuration
 
 The application requires environment configuration in both the **web app** and the **lifecycle worker** packages.
 
@@ -38,7 +38,7 @@ The application requires environment configuration in both the **web app** and t
 
 ---
 
-## 🐳 Option 1: Running Everything inside Docker (Recommended)
+## Option 1: Running Everything inside Docker (Recommended)
 
 This option is the fastest and cleanest way to run the entire app stack, database, redis, and scheduler inside Docker without needing local node dependencies.
 
@@ -68,7 +68,7 @@ docker compose down -v
 
 ---
 
-## 💻 Option 2: Running Services Locally (on Host Machine)
+## Option 2: Running Services Locally (on Host Machine)
 
 Use this option if you want to run the web server and background worker directly on your host machine (highly recommended for live debugging or hot-reloading).
 
@@ -107,7 +107,7 @@ Open two separate terminals to run the web server and background worker processe
 
 ---
 
-## 🧪 Running Integration Tests
+## Running Integration Tests
 
 To run the automated Vitest integration suite (which verifies the serializable transaction lock against concurrent bid races):
 
@@ -119,7 +119,7 @@ To run the automated Vitest integration suite (which verifies the serializable t
 
 ---
 
-## 👥 Simulating a Multi-User Bidding War
+## Simulating a Multi-User Bidding War
 
 To experience the real-time WebSocket broadcast and dynamic countdown behaviors of the app locally:
 
