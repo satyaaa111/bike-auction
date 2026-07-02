@@ -43,22 +43,12 @@ The application requires environment configuration in both the **web app** and t
 This option is the fastest and cleanest way to run the entire app stack, database, redis, and scheduler inside Docker without needing local node dependencies.
 
 ### 1. Build and Launch Containers
-Run the following command at the root of the project to build and start the PostgreSQL database, Redis instance, next.js web server, and lifecycle worker:
+Run the following command at the root of the project to build and start the PostgreSQL database, Redis instance, Next.js web server, and lifecycle worker:
 ```bash
 docker compose up --build -d
 ```
 
-### 2. Setup Database Tables (Non-interactive)
-Once the containers are running and healthy, push the database schema and tables into the Dockerized PostgreSQL database:
-```bash
-docker compose exec web npx prisma db push
-```
-
-### 3. Seed Admin Credentials
-Seed the database with the initial administrator account:
-```bash
-docker compose exec web npm run prisma:seed
-```
+*Note: The web container is configured to automatically run database schema migrations (`npx prisma db push`) and seed the initial admin account (`admin@bikeauction.dev` / `password123`) on startup. There are **no manual setup commands** required.*
 
 ### 4. Stop the Environment
 To shut down all containers and clean up volumes:
