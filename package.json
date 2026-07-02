@@ -1,0 +1,17 @@
+{
+  "name": "bike-auction-platform",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/worker"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:worker": "npm run dev --workspace=apps/worker",
+    "db:migrate": "npm run prisma:migrate --workspace=apps/web",
+    "db:seed": "npm run prisma:seed --workspace=apps/web",
+    "test": "npm run test --workspace=apps/web",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down -v"
+  }
+}

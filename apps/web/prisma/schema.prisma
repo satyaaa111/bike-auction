@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BUYER
+  ADMIN
+}
+
+enum AuctionStatus {
+  SCHEDULED
+  LIVE
+  CLOSED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(BUYER)
+  createdAt    DateTime @default(now())
+
+  bids       Bid[]
+  auctions   Motorcycle[] @relation("CreatedByAdmin")
+  auditLogs  AuditLog[]
+}
+
+model Motorcycle {
+  id             String   @id @default(cuid())
+  make           String
+  model          String
+  year           Int
+  mileageKm      Int
+  condition      String
+  imageUrls      String[]
+  createdByAdmin User     @relation("CreatedByAdmin", fields: [createdByAdminId], references: [id])
+  createdByAdminId String
+  createdAt      DateTime @default(now())
+
+  auction Auction?
+}
+
+model Auction {
+  id                  String        @id @default(cuid())
+  motorcycle          Motorcycle    @relation(fields: [motorcycleId], references: [id])
+  motorcycleId        String        @unique
+  startTime           DateTime
+  endTime             DateTime
+  startingBidPaise    BigInt
+  currentHighestBid   Bid?          @relation("CurrentHighestBid", fields: [currentHighestBidId], references: [id])
+  currentHighestBidId String?       @unique
+  status              AuctionStatus @default(SCHEDULED)
+  // Optimistic concurrency guard used alongside row-level locking —
+  // see ARCHITECTURE.md §6 for why row locking is primary and this is a
+  // defense-in-depth check on the closing transition specifically.
+  version             Int           @default(0)
+  createdAt           DateTime      @default(now())
+
+  bids Bid[] @relation("AuctionBids")
+
+  @@index([status, startTime])
+  @@index([status, endTime])
+}
+
+model Bid {
+  id         String   @id @default(cuid())
+  auction    Auction  @relation("AuctionBids", fields: [auctionId], references: [id])
+  auctionId  String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  amountPaise BigInt
+  createdAt  DateTime @default(now())
+
+  // Back-relation for Auction.currentHighestBid
+  highestForAuction Auction? @relation("CurrentHighestBid")
+
+  @@index([auctionId, amountPaise])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actor      User?    @relation(fields: [actorId], references: [id])
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
